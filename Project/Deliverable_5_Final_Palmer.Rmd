@@ -1,0 +1,504 @@
+---
+title: "Deliverable 5"
+author: "｡⋆˚⭑⟡✴︎ Kelby MK Palmer ✴︎⟡⭑˚⋆｡"
+date: "November 9, 2025"
+output: 
+  html_notebook: 
+    theme: 
+      version: 4
+      bg: "#ffe6ff"
+      fg: "#cc0099"
+      primary: "#6b2b1a"
+      base_font: 
+        google: "Source Sans Pro"
+      heading_font: 
+        google: "Playfair Display"
+---
+
+
+# Libraries
+```{r}
+library(tidyverse)
+library(lubridate)
+library(stringr)
+library(ggplot2)
+library(ggridges)
+library(htmltools)
+library(bslib)
+library(plotly)
+library(dplyr)
+library(grDevices)
+library(usmap)
+library(kableExtra)
+
+library(showtext)     # <-- ADD
+showtext_auto()       # <-- ADD
+font_add_google("Playfair Display", "playfair")   # <-- ADD
+
+
+```
+
+```{r}
+shopping <- read_csv("proper_raw_shopping_behavior.csv")
+shopping
+```
+
+
+# Summary
+This project explores shopping behavior using a dataset from Kaggle, containing data from 3,900 U.S. shoppers. The analysis focused on spending patterns, demographic trends, and seasonal or regional differences in purchasing habits. The goal was to identify which groups shop the most, which categories draw the highest spending, and how patterns shift or differ based on location and time of year.
+
+After exploratory data analysis was performed, clear trends appeared such as mid-range spending, consistent seasonal fluctuations, and noticeable imbalances in gender representation. The results offer a broad picture of who shops, what they prefer, and where the most activity occurs, creating a foundation for understanding customer behavior in a simplified retail environment.
+
+
+# Purpose
+The goal of this project was to explore how demographic and seasonal factors influence shopping behavior. The main questions to be answered were: Who spends the most? Which products and colors are most popular? How do location and season affect purchase trends? This analysis helps show how businesses might better understand consumer preferences and plan marketing strategies.
+
+# Data
+
+a. Dataset Description & Features
+
+The dataset came from Kaggle and contains 3,900 U.S.-based customer records with 18 total attributes describing shopping patterns, preferences, and demographics. This project focused on 10 of those variables to highlight specific spending and behavioral trends rather than analyzing every available feature.
+
+The variables used were:
+```{r}
+variables <- data.frame(
+  Variable = c("Gender", "Age", "Category", "Color", "Purchase_Amount_(USD)",
+               "Payment_Method", "Location", "Season"),
+  Type = c("Categorical", "Numeric", "Categorical", "Categorical", "Numeric",
+           "Categorical", "Categorical", "Categorical"),
+  Description_Unit = c(
+    "Male or Female",
+    "Age of customer in years",
+    "Product category (ex: Clothing, Footwear, etc.)",
+    "Product color purchased",
+    "Purchase amount in U.S. dollars",
+    "Method used for payment (Debit/Credit Card, PayPal, etc.)",
+    "Customer’s U.S. state",
+    "Season of purchase (Spring, Summer, Fall, Winter)"
+  )
+)
+
+kable(variables, col.names = c("Variable", "Type", "Description / Unit")) %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover")) %>%
+  row_spec(0, bold = TRUE, color = "#fff", background = "#cc0099")
+```
+
+
+These variables provided a good balance between numeric and categorical data that helped explore spending behavior, preferences, and demographic patterns.
+
+b. Missing & Null Values
+There were no major missing or null values in the dataset. The data was already clean, with complete entries for all selected columns. Since the dataset was in good shape, there was no need to make any corrections or fill in missing values before analysis. This made it easier to jump straight into exploring patterns and building visuals.
+
+c. Methodology and Changes
+The dataset was already in a tidy format, each row clearly represented a single purchase record and each column represented a single attribute. tidyverse and dplyr libraries were used for summarizing, filtering, and visualizing data. Functions like count(), mutate(), and summarize() were also used to help create comparisons between gender, categories, and locations.
+
+When visualizing, the reorder() function was used with ggplot2 to organize bars and boxplots in a more readable way. Other than that, the dataset didn’t require any major structural changes, so the main focus was on exploring relationships and identifying trends in spending and shopping behavior.
+
+# **Exploratory Data Analysis**
+
+## a) Summary Stats & Overview
+
+```{r}
+summary(shopping)
+```
+- The summary statistics gives a quick view of the dataset's structure. Customer ages range from 18 to 70, with a median of 44, showing that the data is frequently around middle-aged shoppers. Purchase amounts range from 20 dollars to 100, with a median of 60 dollars and a mean of about $59.8, which supports the idea that most spending falls in a steady mid-range instead of at the extreme ends. Previous purchases show a wide distribution (1 to 50), suggesting customers vary a lot in how frequently they shop. There is a mix of categorical and numerical variables. Overall, the summary shows that the dataset is complete (no missing values shown), balanced, and structured in a way that supports a straightforward analysis.
+
+
+### **Histogram** for _Age distribution_ 👶 👴 
+```{r}
+ggplot(shopping, aes(x = Age)) + 
+  geom_histogram(binwidth = 5, fill = "maroon3", color = "thistle1") + 
+  labs(
+    title = "Distribution of Customer Ages", 
+    x = "Age", 
+    y = "Count"
+  ) +  
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    panel.grid.minor = element_blank()
+  )
+```
+- This histogram shows the distribution of the ages of the customers from the dataset. It can be seen that there are roughly two peaks, the first around 20-30 and the second between 50 and 60. This suggests that the main groups of shoppers are either young or old. There are fewer middle-aged shoppers in this population.
+
+### **Histogram** for _purchase amount distribution_ 🛒💲
+```{r}
+ggplot(shopping, aes(x = `Purchase_Amount_(USD)` )) + 
+  geom_histogram(binwidth = 5,  fill = "maroon3", color = "thistle1") + 
+  labs(
+    title = "Distribution of Purchase Amounts", 
+    x = "Purchase Amount in Dollars", 
+    y = "Number of Purchases"
+  ) +  
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    panel.grid.minor = element_blank()
+  )
+```
+- This bar chart shows the distribution of purchase amounts from the shopping data. There's two or three peaks, one around the 30–35 dollar range and another near 90–95 dollars. This means that customers tend to spend either on the lower or higher end, with fewer purchases falling in the mid-range.
+
+### **Box Plot** for _Purchase Amount by Product Category_ 
+
+```{r}
+shopping %>%
+  ggplot(aes(x = reorder(Category, `Purchase_Amount_(USD)`, median), 
+             y = `Purchase_Amount_(USD)`, fill = Category)) +
+  geom_boxplot(show.legend = FALSE, alpha = 0.6) +
+  coord_flip() +
+  labs(
+    title = "Purchase Amount by Product Category",
+    subtitle = "Outerwear and Clothing show slightly higher spending ranges.",
+    x = "Product Category",
+    y = "Purchase Amount in Dollars"
+  ) + 
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    panel.grid.minor = element_blank()
+  )
+```
+- This boxplot shows how spending looks across the main product categories and helps analyze which areas customers spend their money on the most. Footwear, Clothing, and Accessories all have similar median purchase amounts, but their spreads are different, which means some categories have more variation in what people are willing to spend. Outerwear has the widest spread, suggesting customers either buy very low-cost basics or pricier pieces depending on the style or season. This visual helps support the overall goal of the project by showing which categories have the most consistent spending and where customers tend to shop across a wider price range.
+
+
+## b) Shopping Behavior & Spending Trends
+
+### Payment Methods Distribution   💳 💵 📱
+```{r}
+shopping %>%
+  count(Payment_Method) %>%
+  mutate(pct = n / sum(n)) %>%
+  ggplot(aes(x = reorder(Payment_Method, pct), y = pct, fill = Payment_Method)) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = scales::percent(pct, accuracy = 0.1)), vjust = -0.3) +
+  labs(
+    title = "Distribution of Payment Methods",
+    subtitle = "Majority of purchases were made via Credit Card and PayPal.",
+    x = "Payment Method",
+    y = "Share of Total Transactions"
+  ) +
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    panel.grid.minor = element_blank()
+  )
+```
+- This bar chart shows that Credit Card and PayPal are the most common payment methods. Bank Transfer is used the least, likely due to its slower processing and the lack of rewards, as compared to credit cards. Bank transfers also tend to involve more steps and security measures than digital payments, so it makes sense that shoppers prefer faster, one-click options like PayPal and credit cards.
+
+## Average Spending by Gender
+```{r}
+shopping %>%
+  group_by(Gender) %>%
+  summarize(
+    avg_spending = mean(`Purchase_Amount_(USD)`, na.rm = TRUE),
+    total_spending = sum(`Purchase_Amount_(USD)`)
+  )
+
+shopping %>%
+  group_by(Gender) %>%
+  summarize(avg_spending = mean(`Purchase_Amount_(USD)`, na.rm = TRUE)) %>%
+  ggplot(aes(x = Gender, y = avg_spending, fill = Gender)) +
+  geom_col(alpha = 0.8) +
+  scale_fill_manual(values = c("Female" = "#cc0099", "Male" = "lightblue")) +
+  labs(
+    title = "Average Spending by Gender",
+    subtitle = "Shows the mean purchase amount across all transactions.",
+    x = "Gender",
+    y = "Average Spending (USD)"
+  ) +
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    legend.position = "none"
+  )
+
+```
+- Even though male customers made more total purchases, their higher totals are mostly due to how heavily the dataset is skewed toward men. When comparing averages instead of totals, female shoppers actually spent slightly more per purchase. This contrast shows exactly how important it is to look at both totals and averages together, since totals reflect sample size while averages reflect behavior. So even though men appear to spend more overall, women are actually just as active (or even a bit more generous) on a per-purchase basis.
+
+
+### Total Spending by Gender
+```{r}
+shopping %>%
+  group_by(Gender) %>%
+  summarize(total_spending = sum(`Purchase_Amount_(USD)`, na.rm = TRUE)) %>%
+  ggplot(aes(x = Gender, y = total_spending, fill = Gender)) +
+  geom_col(alpha = 0.8) +
+  scale_fill_manual(values = c("Female" = "#cc0099", "Male" = "lightblue")) +
+  labs(
+    title = "Total Spending by Gender",
+    subtitle = "Shows the combined purchase amount across all customers.",
+    x = "Gender",
+    y = "Total Spending (USD)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    legend.position = "none"
+  )
+```
+- This chart compares the total amount spent by male and female customers. Male shoppers clearly lead in total spending, but that’s mostly because there are more of them in the dataset. Even though men made more purchases overall, it doesn’t necessarily mean they spend more per purchase, just that their larger numbers add up to a higher total.
+
+
+## c) Product & Color Preferences
+
+### Product Category by Gender
+```{r}
+shopping %>%
+  count(Gender, Category) %>%
+  ggplot(aes(x = Category, y = n, fill = Gender)) +
+  geom_col(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("Female" = "#cc0099", "Male" = "lightblue")) +
+  labs(title = "Product Categories by Gender",
+       x = "Category", y = "Number of Purchases") + 
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    panel.grid.minor = element_blank()
+  )
+```
+- This chart compares product category purchases by gender. It is clear that **the sample does not reflect the population.** Clothing and accessories are the most popular across both groups, but males consistently make more purchases overall in every category. The gap is very noticeable in all categories, but especially clothing and footwear. This reflects the dataset’s imbalance, since it contains more male entries -- meaning the results noticeably show shopping behavior within this sample rather than representing the broader population.
+
+
+### Top 5 Colors by Gender
+```{r}
+color_by_gender <- shopping %>%
+  count(Gender, Color, name = "Occurrences") %>%
+  group_by(Gender) %>%
+  slice_max(order_by = Occurrences, n = 5)
+
+ggplot(color_by_gender, aes(x = reorder(Color, Occurrences),
+                            y = Occurrences, fill = Gender)) +
+  geom_col(position = "identity", alpha = 0.7) + #this position = "identity" part was so helpful, before the graph was so weird and the sizes of the bars were very off, but this fixed it so that they would just overlap. The problem was that the bars were trying to stay the same size even though they were overlapping.
+  scale_fill_manual(values = c("Female" = "#cc0099", "Male" = "lightblue")) +
+  labs(
+    title = "Top 5 Colors by Gender",
+    subtitle = "Transparent overlap highlights shared color preferences.",
+    x = "Color",
+    y = "Number of Purchases"
+  ) +
+ theme_minimal(base_size = 12) +
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    legend.text = element_text(family = "playfair", size = 10),
+    legend.title = element_text(family = "playfair", face = "bold", size = 11),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+- This chart compares the top color choices between male and female shoppers. Pink, magenta, and green are most popular among women, while men lean toward cooler tones like teal, cyan, and silver. You’d usually expect more overlap between the groups, but since this dataset has more male entries overall and came significantly tidy, it likely skews the color rankings. Even with that imbalance, yellow and olive still show up as shared favorites across both groups, which might represent more neutral or universally appealing tones.
+
+### Top 5 Colors by Product Category
+```{r}
+top_colors_by_cat <- shopping %>%
+  count(Category, Color, name = "Occurances") %>%
+  group_by(Category) %>%
+  slice_max(order_by = Occurances, n=5)
+
+top_colors_by_cat %>%
+  ggplot(aes(x = reorder(Color, Occurances), 
+             y = Occurances, 
+             fill = Category)) +
+  geom_col(show.legend = FALSE, color = "thistle1", alpha = 0.8) +
+  coord_flip() +
+  facet_wrap(~ Category, scales = "free_y") +
+  labs(
+    title = "Top 5 Colors by Product Category",
+    subtitle = "Most frequently purchased colors within each category.",
+    x = "Color",
+    y = "Number of Occurrences"
+  ) +
+  scale_fill_manual(values = rep("#cc0099", length(unique(top_colors_by_cat$Category)))) + 
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    panel.grid.minor = element_blank()
+  )
+
+```
+- This chart shows the five most frequently purchased colors within each product category. Accessories lean toward neutral and earthy tones like Olive and Gray, while Clothing includes deeper shades like Teal and Maroon. Footwear trends toward softer colors, and Outerwear favors cooler ones such as Blue and Violet.
+
+## d) Regional & Seasonal Trends
+
+### Top 10 Customer Locations 📍 🗺️
+```{r}
+shopping %>%
+  count(Location, name = "Purchases") %>%
+  arrange(desc(Purchases)) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(Location, Purchases), y = Purchases)) +
+  geom_col(fill = "#cc0099") +
+  coord_flip() +
+  labs(title = "Top 10 Customer Locations by Purchase Volume",
+       x = "Location", y = "Number of Purchases") + 
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    panel.grid.minor = element_blank()
+  )
+```
+- This bar chart shows where most customers are shopping from. Montana and California have the most total purchases, with states like Idaho, Illinois, and Alabama close behind. The distribution looks fairly balanced overall, with normal variance between states that could be because of differences in anything from population to marketing strategies in each location.
+
+### U.S. Map (Purchase Volume by State)
+```{r}
+# to load the font
+showtext_auto()
+font_add_google("Playfair Display", "playfair")
+
+# sum the state-level purchases
+state_purchases <- shopping %>%
+  count(Location, name = "Purchases") %>%
+  rename(state = Location) %>%
+  mutate(code = state.abb[match(state, state.name)])  # get state abbreviations
+
+# make interactive map
+us_shopping_map <- plot_geo(state_purchases, locationmode = "USA-states") %>%
+  add_trace(
+    locations = ~code,
+    z = ~Purchases,
+    text = ~paste0(
+      "<b>", state, "</b><br>",
+      Purchases, " purchases 🛍️✨💖" #this should be shown on hover
+    ),
+    hoverinfo = "text",
+    colorscale = list(c(0, 1), c("#f8d6e0", "#cc0099")),
+    marker = list(line = list(color = "white", width = 1))
+  ) %>%
+  colorbar(title = "Purchases") %>%
+  layout(
+    title = list(
+      text = "<b>Customer Purchase Volume by State</b><br><span style='font-size:12px;'>Hover to explore regional activity</span>",
+      font = list(family = "Playfair Display", size = 20)
+    ),
+    geo = list(
+      scope = "usa",
+      projection = list(type = "albers usa"),
+      bgcolor = "lightblue",          # background
+      lakecolor = "#e9f2f9",
+      showlakes = TRUE
+    ),
+    font = list(family = "Playfair Display")
+  )
+
+us_shopping_map
+```
+- This map was added as an exploratory visual to get a broad sense of how shopping activity varies across the country. The darker pink shades show higher purchase volume, which makes states like Montana, California, and Illinois stand out a bit more. Even though the map is general and only shows state-level totals, it still gets the point across: most states have pretty steady, moderate shopping levels, with just a few that lean higher. It was mainly included to explore overall patterns, not to make exact or perfectly predictive geographic results.
+
+### Total Spending by Season ☀️ ❄️ 🌷 🍂
+
+```{r}
+shopping %>%
+  group_by(Season) %>%
+  summarise(total_spending = sum(`Purchase_Amount_(USD)`)) %>%
+  ggplot(aes(x = Season, y = total_spending, fill = Season)) +
+  geom_col() +
+  scale_fill_manual(values = c("coral", "maroon2", "gold", "lightblue")) +
+  labs(title = "Total Spending by Season", x = "Season", y = "Total Spending (in Dollars)") + 
+  theme(
+    text = element_text(family = "playfair"),
+    plot.title = element_text(family = "playfair", face = "bold", size = 16),
+    plot.subtitle = element_text(family = "playfair", size = 11),
+    axis.title = element_text(family = "playfair", size = 12),
+    axis.text = element_text(family = "playfair", size = 10),
+    panel.grid.minor = element_blank()
+  )
+
+```
+- This chart shows how total spending changes across the seasons. Fall has the highest spending overall, while Summer has the lowest. Spring and Winter are in the middle and are fairly close to each other, leaning more toward the higher levels seen in Fall. All together, it gives a simple look at when shoppers tend to spend the most and least throughout the year.
+
+
+### Top 5 Colors by Season
+
+```{r}
+top_colors_by_season <- shopping %>%
+  count(Season, Color, name = "Occurrences") %>%
+  group_by(Season) %>%
+  slice_max(order_by = Occurrences, n = 5)
+
+ggplot(top_colors_by_season, aes(x = Color, y = Occurrences, fill = Season)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~Season, scales = "free_x") +
+  scale_fill_manual(values = c(
+    "Fall" = "coral",
+    "Spring" = "maroon2",
+    "Summer" = "gold",
+    "Winter" = "lightblue"
+  )) +
+  labs(
+    title = "Top 5 Colors in Each Season",
+    x = "Color",
+    y = "Occurrences"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    text = element_text(family = "playfair"),                 # apply font
+    plot.title = element_text(family = "playfair", face = "bold", size = 14),
+    plot.subtitle = element_text(family = "playfair"),
+    axis.title = element_text(family = "playfair"),
+    axis.text = element_text(family = "playfair", angle = 45, hjust = 1, size = 9),
+    strip.text = element_text(family = "playfair", face = "bold")
+  )
+
+```
+- This chart shows the top five colors in each season and gives a quick feel for how shopper preferences shift throughout the year. Fall tends to lean warm with shades like Magenta, Olive, and Orange. Spring switches into brighter colors such as Pink and Teal. Summer has more cool tones like Silver, Teal, and Green, while Winter brings in deeper colors like Green, Peach, and Maroon. Overall, the color trends line up with the general mood of each season and help show how shopper preferences change throughout the year.
+
+
+# Results
+- For this project, the focus was on exploring the data visually to figure out how people shop and what patterns stand out. Descriptive statistics and graphs in ggplot2 were used to break things down by gender, category, season, location, etc. Since the dataset was already clean, there wasn't much need to do data wrangling, it was mostly grouping, summarizing, and visualizing what was already there.
+
+- This approach was best because it lets the data speak for itself. The boxplots, bar charts, and map made it easy to find differences between groups and find trends that might not be obvious when looking at raw numbers. The color and shape differences in each chart also help show group trends. The goal was to understand who’s shopping, what they’re buying, and when and where it’s happening, and visuals helped make that story clear. 
+
+- Overall, it was found that most people spend in a steady midrange, with digital payments like credit cards and PayPal being the most common Men made more total purchases, but that’s mostly because there are more male shoppers in the dataset. On average, women actually spend slightly more per purchase. Colors like pink, teal, and yellow stand out across both groups, and seasons like spring and fall see the most shopping activity. States like Montana, California, and Illinois came out on top for total purchase volume.
+
+
+
+# Conclusions
+
+- This project helped point out how all these shopping habits connect, like how gender, location, and season can influence what people buy and when. One limitation is that the dataset leans more male, which affects totals and preferences, so that’s something to consider when looking at the results. It also doesn’t include details like customer income or store type, which would’ve helped to understand why people spend the way they do. Another limitation is that while data can be analyzed by season, it would be even more helpful if the data included the exact months. That way, specific holidays or sale periods would be shown and could be analyzed to see how more specific timing impacts shopping behavior.
+
+- Even with those limits, the trends are really useful. The results suggest that convenience-based payment methods dominate, mid-range spending is typical, and purchasing patterns are fairly consistent across seasons and geography. This may help businesses identify which products and payment methods appeal most to online shoppers.
+
+- If this project were to be continued, next steps could include digging into how age affects spending or whether certain product categories are more popular with different age groups. Also, comparing this data to real-world sales info or state populations to see how accurate the trends are. 
+- Overall, this project came together well and shows a clear story about the consumers in this dataset, what they're buying, and when and how they're doing it.
+
+
+
+# References
+- Data Visualization with ggplot2 : : CHEAT SHEET. - (n.d.). Retrieved November 10, 2025, from https://lile.duke.edu/wp-content/uploads/2020/07/R_ggplot2_cheatsheet.pdf
+- Google Fonts. (n.d.). Google Fonts. https://fonts.google.com/specimen/Playfair+Display
+- Hadley Wickham. (2019). ggplot2: Elegant Graphics for Data Analysis.
+- Ggplot2-Book.org. https://ggplot2-book.org/Lorenzo, P. D. (2025). 
+- US Maps Including Alaska and Hawaii [R package usmap version 1.0.0]. R-Project.org. https://cran.r-project.org/package=usmapPackage - “ggplot2” Title Create Elegant Data Visualisations Using the Grammar of Graphics. (2020). https://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf 
+- R for Data Science (2e). (n.d.). R4ds.hadley.nz. https://r4ds.hadley.nz/
+- Zubaira Maimona. (2025). Shopping behaviours dataset. Kaggle.com. https://www.kaggle.com/datasets/zubairamuti/shopping-behaviours-dataset/data
